@@ -1,3 +1,9 @@
 import sqlite3
 
-conn = sqlite3.connect('dateBase.db')
+
+
+class DBOperator():
+    conn = sqlite3.connect('dateBase.db')
+
+    def addComponentReplaceNote(self, note): pass
+
