@@ -50,9 +50,9 @@ def component_replacement_step1(message):
         dbOperator.notes[message.from_user.id] = dbOperator.ReplacementNote.get_component_replacement_note(message)
         reply_with_buttons(
             chat_id=message.chat.id,
-            text=settings.component_request,
+            text=settings.event_request,
             next_step=component_replacement_step2,
-            buttons_list=settings.component_list
+            buttons_list=settings.event_list
         )
     except ValueError:
         reply_with_buttons(
@@ -63,8 +63,32 @@ def component_replacement_step1(message):
 
 def component_replacement_step2(message):
     try:
+        if not message.text in settings.event_list: raise exceptions.IventException
+        if message.text == settings.event_list[0]:
+            reply_with_buttons(
+                chat_id=message.chat.id,
+                text=settings.component_request,
+                next_step=component_replacement_step3,
+                buttons_list=settings.component_list
+            )
+        else:
+            dbOperator.notes[message.from_user.id]['event'] = message.text
+            dbOperator.ReplacementNote.writeInDB(message)
+            reply_with_buttons(
+                chat_id=message.chat.id,
+                text=settings.success_msg,
+            )
+    except exceptions.IventException:
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text=settings.undef_event_message,
+            next_step=component_replacement_step2,
+        )
+
+def component_replacement_step3(message):
+    try:
         if not message.text in settings.component_list: raise exceptions.ComponentException
-        dbOperator.notes[message.from_user.id]['component'] = message.text
+        dbOperator.notes[message.from_user.id]['event'] = "Замена:" + message.text
         dbOperator.ReplacementNote.writeInDB(message)
         reply_with_buttons(
             chat_id=message.chat.id,
@@ -74,8 +98,8 @@ def component_replacement_step2(message):
         reply_with_buttons(
             chat_id=message.chat.id,
             text="Введено неизвестное имя компонента",
-            next_step=component_replacement_step2,
-        ),
+            next_step=component_replacement_step3,
+        )
 
 #       СЦЕНАРИЙ ОБНОВЛЕНИЯ СКЛАДА
 
@@ -100,17 +124,21 @@ def warhouse_update_step_1(message):
         )
 
 def inventory_start(message):
-    dbOperator.notes[message.from_user.id] = dbOperator.InventoryNote.create_inventory_note(message)
-    elem_type = dbOperator.notes[message.from_user.id]["posList"].pop(0)
-    dbOperator.notes[message.from_user.id]["whElemNotes"].append(
-        dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.id, elem_type)
-    )
-    reply_with_buttons(
-        chat_id=message.chat.id,
-        text=settings.warehouse_elem_count_request(elem_type),
-        buttons_list=None,
-        next_step=inventory_circle
-    )
+
+    dbOperator.notes[message.from_user.id] = dbOperator.InventoryNote.create_inventory_note()
+    print(dbOperator.notes[message.from_user.id])
+
+    # elem_type = dbOperator.notes[message.from_user.id]["posList"].pop(0)
+    # dbOperator.notes[message.from_user.id]["whElemNotes"].append(
+    #     dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.id, elem_type)
+    # )
+    #
+    # reply_with_buttons(
+    #     chat_id=message.chat.id,
+    #     text=settings.warehouse_elem_count_request(elem_type),
+    #     buttons_list=None,
+    #     next_step=inventory_circle
+    # )
 
 def inventory_circle(message):
     try:
@@ -212,6 +240,8 @@ def show_printer_story_step2(message):
             text= "История принтера пуста"
         )
 
+#       ПОЛУЧЕНИЕ СОДЕРЖАНИЯ СКЛАДА
+
 @bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["warehouse"])
 def show_warehouse_step1(message):
     warehouse_contents = dbOperator.DBOperator.getWarehouseContents()
@@ -228,8 +258,6 @@ def handle_start_message(message):
         text = settings.hello_question,
         buttons_list=settings.start_menu_commands.values(),
     )
-
-
 
 
 bot.infinity_polling()

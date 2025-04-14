@@ -6,18 +6,20 @@ dbName = 'testDB.db'
 hello_question = "Привет! Чем займёмся?"
 printer_number_request = "Введи номер принтера"
 int_value_error_message = "Нужно ввести целое число"
-component_request = "Что меняем / устанавливаем?"
+event_request = "Что будем делать?"
+component_request = "Что будем менять?"
 warehouse_element_type_request = "Количество чего обновим?"
 warehouse_elem_undef = "На складе нет такой позиции!"
 inventory_end_message = "Инвентаризация завершена"
 success_msg = "Готово"
+undef_event_message = "Неизвестная операция"
 
 def warehouse_elem_count_request(elem):
     return f"Введите количество позиции [{elem}]:" if isinstance(elem, str) else None
 
 
 start_menu_commands = {
-    'comp_replacement' : 'Заменить комплектующую',
+    'comp_replacement' : 'Обслужим принтер',
     'warehouse_update' : 'Обновить содержимое склада',
     'printer_story' : 'Посмотреть историю принтера',
     'warehouse' : 'Содержимое склада'
@@ -35,11 +37,16 @@ component_list = (
     'Шестерня(В)',
     'Шестерня(Н)',
     'PEI-пластина',
-    "Тефлоновая трубка",
+    "Тефлон",
     "Кулер",
     "Кулер-улитка",
-    'ТО',                       # НЕ ЭЛЕМЕНТЫ
+)
+
+event_list = (
+    'Замена комплектующей',
+    'Плановое ТО',
     'Чистка сопла',
+    'Чистка шестерни',
 )
 
 warehouse_list = tuple(list(component_list) + [
@@ -48,8 +55,8 @@ warehouse_list = tuple(list(component_list) + [
     "Вода",
     "Скотч",
     "Стрэтч",
-    "Зип-пактеы",
-    "Мусорные пакеты",
+    "Зип-пакеты",
+    "Мусор. пакеты",
     "Пена",
     "Спирт",
     "Тканевая салфетка",

@@ -1,8 +1,33 @@
 import datetime
 import sqlite3
+import re
+from typing import reveal_type
+
 import settings
 
 notes = {}
+
+
+#     ОБРАБОТКА ОШИБОК: ДОПИСАТЬ
+def stringToDatetime(s):
+
+    def datetimeList(s):
+        if len(s) == 14:
+            return [int(s[1:]) if s[0]=="0" else int(s) for s in re.split(r'[:. ]+', s)]
+        else: return  "Неверный формат времени"
+
+    dtList = datetimeList(s)
+    dt = datetime.datetime(
+        year=dtList[4]+2000,
+        month=dtList[3],
+        day=dtList[2],
+        hour=dtList[0],
+        minute=dtList[1],
+    )
+    print(dt, type(dt))
+    return dt
+
+
 
 class DBOperator():
 
@@ -70,6 +95,21 @@ class DBOperator():
             print(res)
             return res
 
+    @staticmethod
+    def getInventoryNeedsPositions():
+        with sqlite3.connect(settings.dbName) as conn:
+            completed = conn.cursor().execute("""
+                SELECT warehouseElement_name, dateTime FROM warehouse_elem_update
+            """).fetchall()
+            completed = [{
+                "pos":el[0],
+                "dateTime":stringToDatetime(el[1])
+            } if stringToDatetime(el[1]).day == datetime.datetime.now().day else None for el in completed]
+            completed = [x["pos"] for x in completed if x]
+            res = list(settings.component_list) + list(settings.warehouse_list)
+            for el in completed: res.remove(el)
+            return res
+
     def addUser(self): pass
 
     def userIsAuth(self):
@@ -83,7 +123,7 @@ class ReplacementNote():
             "note_type" : ReplacementNote.note_type,
             "employee_id": message.from_user.id,
             "printer_number":int(message.text),
-            "component":None,
+            "event":None,
             "dateTime" : datetime.datetime.now().strftime('%H:%M %d.%m.%y')
         }
 
@@ -91,7 +131,7 @@ class ReplacementNote():
     def writeInDB(message):
         if notes[message.from_user.id]["note_type"] == ReplacementNote.note_type:
             note = notes[message.from_user.id]
-            param_list = [(note["printer_number"], note["component"], note["employee_id"], note["dateTime"])]
+            param_list = [(note["printer_number"], note["event"], note["employee_id"], note["dateTime"])]
             dbOperator = DBOperator()
             dbOperator.writeComponentReplacement(param_list)
             del(dbOperator)
@@ -109,26 +149,22 @@ class WarehouseElemNote():
 
     @staticmethod
     def writeInDB(message):
-        note = notes.pop(message.from_user.id)
-        if note["note_type"] == WarehouseElemNote.note_type:
+        if notes[message.from_user.id]["note_type"] == WarehouseElemNote.note_type:
+            note = notes.pop(message.from_user.id)
             update_param_list = [(note["count"], note["name"])]
-            insert_param_list = [(note["name"], note["employee_id"], str(datetime.datetime.now().date()))]
+            insert_param_list = [(note["name"], note["employee_id"], datetime.datetime.now().strftime('%H:%M %d.%m.%y'))]
             dbOperator = DBOperator()
             dbOperator.editWarehouseElement(update_param_list,  insert_param_list)
             del(dbOperator)
 
-        elif note["note_type"] == InventoryNote.note_type: pass
-
 class InventoryNote():
     note_type = "inventory_note"
     @staticmethod
-    def create_inventory_note(message):
+    def create_inventory_note():
         return {
             "note_type" : InventoryNote.note_type,
-            "username": message.from_user.username,
-            "dateTime": datetime.datetime.now().strftime('%H:%M %d.%m.%y'),                                   #   ТЕКУЩИЙ МОМЕНТ
             "whElemNotes": [],
-            "posList" : list(settings.warehouse_list)
+            "posList" : DBOperator.getInventoryNeedsPositions()
         }
 
     @staticmethod
