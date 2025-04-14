@@ -1,14 +1,25 @@
 import telebot
 import settings, exceptions, dbOperator
 
-bot = telebot.TeleBot(settings.API_TOKEN)
-bot.delete_webhook()
+bot = telebot.TeleBot(settings.API_TOKEN, parse_mode="HTML")
 
-def reply_with_buttons(chat_id, text, buttons_list=None, next_step=None):
-    if not buttons_list: reply_markup = telebot.types.ReplyKeyboardMarkup()
+
+def table_notes_msg_view(title, param_names, param_list):
+    param_names = [name.join(["<b>", "</b>"]) for name in param_names]
+    text = title + "\n\n"
+    for el in param_list:
+        param_iterator = zip(param_names, list(el))
+        str_list = list()
+        for param in param_iterator: str_list.append(" ".join(param))
+        text = text + "\n".join(str_list) + "\n\n"
+    return text
+
+def reply_with_buttons(chat_id, text, buttons_list=None, next_step=None, row_width=1):
+
+    if not buttons_list: reply_markup = telebot.types.ReplyKeyboardRemove()
     else:
-        reply_markup = telebot.types.ReplyKeyboardMarkup(row_width=1)
-        for item in buttons_list: reply_markup.add(telebot.types.KeyboardButton(item))
+        reply_markup = telebot.types.ReplyKeyboardMarkup(row_width=row_width, resize_keyboard=True, one_time_keyboard=True)
+        reply_markup.add(*buttons_list)
     if next_step:
         bot.register_next_step_handler(
             bot.send_message(
@@ -25,13 +36,8 @@ def reply_with_buttons(chat_id, text, buttons_list=None, next_step=None):
             reply_markup=reply_markup,
         ),
 
-# Сделать препроцесс кнопки "ОТМЕНА"
-
-
-
-
 #       СЦЕНАРИЙ ЗАМЕНЫ КОМПЛЕКТУЮЩЕЙ
-@bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands[0])
+@bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["comp_replacement"])
 def handle_component_replacement(message):
     reply_with_buttons(
         chat_id=message.chat.id,
@@ -55,20 +61,25 @@ def component_replacement_step1(message):
             next_step=component_replacement_step1,
         )
 
-
 def component_replacement_step2(message):
     try:
         if not message.text in settings.component_list: raise exceptions.ComponentException
         dbOperator.notes[message.from_user.id]['component'] = message.text
-
-
-        dbOperator.addComponentReplaceNote(dbOperator.notes.pop(message.from_user.id))
+        dbOperator.ReplacementNote.writeInDB(message)
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text=settings.success_msg,
+        )
     except exceptions.ComponentException:
-        bot.send_message(chat_id=message.chat.id, text="Введено неизвестное имя компонента"),
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text="Введено неизвестное имя компонента",
+            next_step=component_replacement_step2,
+        ),
 
 #       СЦЕНАРИЙ ОБНОВЛЕНИЯ СКЛАДА
 
-@bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands[1])
+@bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["warehouse_update"])
 def handle_warehouse_update(message):
     reply_with_buttons(
         chat_id=message.chat.id,
@@ -79,7 +90,7 @@ def handle_warehouse_update(message):
 
 def warhouse_update_step_1(message):
     if message.text == settings.warehouse_update_types[0]: inventory_start(message)
-    elif message.text == settings.warehouse_update_types[1]: warhouse_update_step_2(message)
+    elif message.text == settings.warehouse_update_types[1]: warehouse_update_step_2(message)
     else:
         reply_with_buttons(
             chat_id=message.chat.id,
@@ -88,14 +99,11 @@ def warhouse_update_step_1(message):
             buttons_list=settings.warehouse_update_types
         )
 
-
-
-
 def inventory_start(message):
     dbOperator.notes[message.from_user.id] = dbOperator.InventoryNote.create_inventory_note(message)
     elem_type = dbOperator.notes[message.from_user.id]["posList"].pop(0)
     dbOperator.notes[message.from_user.id]["whElemNotes"].append(
-        dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.username, elem_type)
+        dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.id, elem_type)
     )
     reply_with_buttons(
         chat_id=message.chat.id,
@@ -103,7 +111,6 @@ def inventory_start(message):
         buttons_list=None,
         next_step=inventory_circle
     )
-
 
 def inventory_circle(message):
     try:
@@ -133,51 +140,37 @@ def inventory_circle(message):
         )
         inventory_end(message)
 
-
 def inventory_end(message):
     print(dbOperator.notes[message.from_user.id])
     dbOperator.InventoryNote.end()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def warhouse_update_step_2(message):
+def warehouse_update_step_2(message):
     reply_with_buttons(
         chat_id=message.chat.id,
         text=settings.warehouse_element_type_request,
         buttons_list=settings.warehouse_list,
-        next_step=warhouse_update_step_3
+        row_width = 2,
+        next_step=warehouse_update_step_3
     )
 
-def warhouse_update_step_3(message):
+def warehouse_update_step_3(message):
     try:
         if not message.text in settings.warehouse_list: raise exceptions.WarehouseElementTypeException
         dbOperator.notes[message.from_user.id] =\
-            dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.username, message.text)
+            dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.id, message.text)
         reply_with_buttons(
             chat_id=message.chat.id,
             text=settings.warehouse_elem_count_request(message.text),
-            next_step=warhouse_update_step_4
+            next_step=warehouse_update_step_4
         )
     except exceptions.WarehouseElementTypeException:
         reply_with_buttons(
             chat_id=message.chat.id,
             text=settings.warehouse_elem_undef,
-            next_step=warhouse_update_step_3
+            next_step=warehouse_update_step_3
         )
 
-def warhouse_update_step_4(message):
+def warehouse_update_step_4(message):
     try:
         dbOperator.notes[message.from_user.id]['count'] = int(message.text)
         dbOperator.WarehouseElemNote.writeInDB(message)
@@ -186,26 +179,57 @@ def warhouse_update_step_4(message):
             reply_with_buttons(
                 chat_id=message.chat.id,
                 text=settings.int_value_error_message,
-                next_step=warhouse_update_step_4
+                next_step=warehouse_update_step_4
             )
 
+#       ПОЛУЧЕНИЕ ИСТОРИИ ОБСЛУЖИВАНИЯ ПРИНТЕРА
 
+@bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["printer_story"])
+def show_printer_story_step1(message):
+    reply_with_buttons(
+        chat_id=message.chat.id,
+        text=settings.printer_number_request,
+        next_step=show_printer_story_step2
+    )
 
+def show_printer_story_step2(message):
+    try:
+        story = dbOperator.DBOperator.getPrinterStory(int(message.text))
+        text = table_notes_msg_view(f"История принтера №{message.text}", story["field_names"], story["res"])
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text= text
+        )
+    except ValueError:
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text=settings.int_value_error_message,
+            next_step=show_printer_story_step2
+        )
+    except telebot.apihelper.ApiTelegramException:
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text= "История принтера пуста"
+        )
 
-
-
-# @bot.message_handler()
-# def handle_get_logs(message):
-#     markup = telebot.types.ReplyKeyboardRemove()
-#     pass
+@bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["warehouse"])
+def show_warehouse_step1(message):
+    warehouse_contents = dbOperator.DBOperator.getWarehouseContents()
+    text = table_notes_msg_view("Содержимое склада:", warehouse_contents["names"], warehouse_contents["counts"])
+    reply_with_buttons(
+        chat_id=message.chat.id,
+        text=text,
+    )
 
 @bot.message_handler()
 def handle_start_message(message):
     reply_with_buttons(
         chat_id=message.chat.id,
         text = settings.hello_question,
-        buttons_list=settings.start_menu_commands
+        buttons_list=settings.start_menu_commands.values(),
     )
+
+
 
 
 bot.infinity_polling()
