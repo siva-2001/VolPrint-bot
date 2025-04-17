@@ -1,13 +1,12 @@
-API_TOKEN = "5540793759:AAFcStMnOLcuth1CntvQHF6ptu-Ilev7G24"
-
 printer_count = 60
+main_chat_id = 808976737
 dbName = 'testDB.db'
+dbDatetimeFormat = "%y.%m.%d %H:%M"
 
 hello_question = "Привет! Чем займёмся?"
 printer_number_request = "Введи номер принтера"
 int_value_error_message = "Нужно ввести целое число"
 event_request = "Что будем делать?"
-component_request = "Что будем менять?"
 warehouse_element_type_request = "Количество чего обновим?"
 warehouse_elem_undef = "На складе нет такой позиции!"
 inventory_end_message = "Инвентаризация завершена"
@@ -22,13 +21,13 @@ start_menu_commands = {
     'comp_replacement' : 'Обслужим принтер',
     'warehouse_update' : 'Обновить содержимое склада',
     'printer_story' : 'Посмотреть историю принтера',
-    'warehouse' : 'Содержимое склада'
+    'warehouse' : 'Содержимое склада',
     # 'Посмотреть историю замен запчастей',
 }
 
 warehouse_update_types = (
     "Провести инвентаризацию",
-    "Обновление по одной позиции"
+    "Обновление по одной позиции",
 )
 
 component_list = (
@@ -38,18 +37,18 @@ component_list = (
     'Шестерня(Н)',
     'PEI-пластина',
     "Тефлон",
-    "Кулер",
+    "Кулер барьера",
     "Кулер-улитка",
 )
 
 event_list = (
-    'Замена комплектующей',
+    'Замена компл.',
     'Плановое ТО',
     'Чистка сопла',
     'Чистка шестерни',
 )
 
-warehouse_list = tuple(list(component_list) + [
+warehouse_list = tuple(set(list(component_list) + [
     "Коробки",
     "Клей",
     "Вода",
@@ -59,6 +58,6 @@ warehouse_list = tuple(list(component_list) + [
     "Мусор. пакеты",
     "Пена",
     "Спирт",
-    "Тканевая салфетка",
+    "Ткан. салфетка",
     "Смазка"
-])
+]))

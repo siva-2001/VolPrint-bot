@@ -1,5 +1,6 @@
 dataBase.db
 GIT_TOKEN
+API_TOKEN.py
 testDB.db
 dbInitSQL.py
 Фичи к реализации

@@ -19,12 +19,15 @@ CREATE TABLE employee (
 CREATE TABLE warehouse_position (
     name TEXT PRIMARY KEY,
     current_count INTEGER,
-    required_minimum INTEGER
+    required_minimum INTEGER,
+    responsible_for_the_order TEXT NOT NULL,
+    FOREIGN KEY (responsible_for_the_order) REFERENCES employee (tg_user_id)
 );
 
 CREATE TABLE component_replacement (
     id INTEGER PRIMARY KEY,
     printer_number INTEGER,
+    operation TEXT,
     warehouseElement_name TEXT,
     employee_id INTEGER,
     dateTime TEXT,
@@ -52,8 +55,10 @@ def create_warehouseElem():
     try:
         conn = sqlite3.connect("testDB.db")
         cursor = conn.cursor()
+        cursor.executescript(f"""INSERT INTO employee  
+            (username, tg_user_id, name) VALUES ("siva", "808976737", "siva");""")
         sql = f"""INSERT INTO {dbOperator.WarehouseElemNote.note_type}  
-        (name, current_count, required_minimum) VALUES (?, ?, ?);"""
+            (name, current_count, required_minimum, responsible_for_the_order) VALUES (?, ?, ?, "808976737");"""
         cursor.executemany(sql, param_list)
         conn.commit()
     finally:
@@ -61,3 +66,4 @@ def create_warehouseElem():
         conn.close()
 
 create_warehouseElem()
+
