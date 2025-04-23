@@ -1,9 +1,8 @@
 import datetime
 import telebot
 import settings, exceptions, dbOperator
-import API_TOKEN
 
-bot = telebot.TeleBot(API_TOKEN.API_TOKEN, parse_mode="HTML", skip_pending=True)
+bot = telebot.TeleBot(settings.API_TOKEN, parse_mode="HTML", skip_pending=True)
 
 def cancelDecorator(func):
     def wrapper(*args, **kwargs):
@@ -23,7 +22,6 @@ def checkInput(func):
 
 
     return wrapper
-
 
 def table_notes_msg_view(title, param_names, param_tuple_list):
     param_names = [name.join(["<b>", "</b>"]) for name in param_names]
@@ -50,8 +48,9 @@ def list_notes_msg_view(title, param_names, param_list):
         str_list.append(" ".join([str(x) for x in note]))
     return text + "\n".join(str_list) + "\n\n"
 
-def reply_with_buttons(chat_id, text, buttons_list=None, next_step=None, row_width=1):
-    btn_list = ["ОТМЕНА"]
+def reply_with_buttons(chat_id, text, buttons_list=None, withoutCancel=False, next_step=None, row_width=1):
+    btn_list = list()
+    if not withoutCancel: btn_list.append("ОТМЕНА")
     if buttons_list: btn_list = list(buttons_list) + btn_list
     reply_markup = telebot.types.ReplyKeyboardMarkup(row_width=row_width, resize_keyboard=True, one_time_keyboard=True)
     print(btn_list)
@@ -78,6 +77,9 @@ def reply_with_buttons(chat_id, text, buttons_list=None, next_step=None, row_wid
 #       СЦЕНАРИЙ ЗАМЕНЫ КОМПЛЕКТУЮЩЕЙ
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
+
+# @bot.message_handler(func=lambda msg: msg.text=="На главную")
+# def mainPageRef(message):
 
 @bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["comp_replacement"])
 def handle_component_replacement(message):
@@ -127,12 +129,14 @@ def component_replacement_step2(message):
             dbOperator.ReplacementNote.writeInDB(note)
             reply_with_buttons(
                 chat_id=message.chat.id,
-                text=settings.success_msg,
+                text="Готово!",
+                withoutCancel=True,
+                buttons_list=["На главную"]
             )
     except exceptions.IventException:
         reply_with_buttons(
             chat_id=message.chat.id,
-            text=settings.undef_event_message,
+            text="Неизвестная операция",
             next_step=component_replacement_step2,
             buttons_list=settings.event_list
         )
@@ -147,6 +151,7 @@ def component_replacement_step3(message):
         reply_with_buttons(
             chat_id=message.chat.id,
             text=f'Готово! Проведена операция: {note["operation"]} "{note["component"]}"',
+            withoutCancel=True,
         )
     except exceptions.ComponentException:
         reply_with_buttons(
@@ -235,7 +240,7 @@ def inventory_circle(message):
     except IndexError:
         reply_with_buttons(
             chat_id=message.chat.id,
-            text=settings.inventory_end_message,
+            text="Инвентаризация завершена",
             buttons_list=["Ок"]
         )
         inventory_end(message)
@@ -309,7 +314,7 @@ def warehouse_update_step_4(message):
 def show_printer_story_step1(message):
     reply_with_buttons(
         chat_id=message.chat.id,
-        text=settings.printer_number_request,
+        text="Введи номер принтера",
         next_step=show_printer_story_step2
     )
 
@@ -374,7 +379,7 @@ def handle_start_message(message):
     reply_markup.add(*settings.start_menu_commands.values())
     bot.send_message(
         chat_id=message.chat.id,
-        text = settings.hello_question,
+        text = "Привет! Чем займёмся?",
         reply_markup=reply_markup
     )
 
