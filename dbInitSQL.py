@@ -55,7 +55,7 @@ def dbInitial():
         def create_warehouseElem():
             param_list = [(e, 0, 0) for e in settings.warehouse_list]
             try:
-                conn = sqlite3.connect("testDB.db")
+                conn = sqlite3.connect(settings.dbName)
                 cursor = conn.cursor()
                 cursor.executescript(f"""INSERT INTO employee  
                     (username, tg_user_id, name) VALUES ("siva", "808976737", "siva");""")
