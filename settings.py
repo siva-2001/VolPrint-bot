@@ -2,7 +2,8 @@ import os
 
 printer_count = 60
 main_chat_id = 808976737
-dbName = 'data/testDB.db'
+dbName = '/data/testDB.db'
+
 
 API_TOKEN = os.environ.get("API_TOKEN")
 
