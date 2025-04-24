@@ -1,13 +1,24 @@
-import os
+"""
+В среде окружения необходимы переменные:
+API_TOKEN - телеграм API токен
+REG_PW - Регистрационный пароль
+"""
+
+
+
+
+import os, sys
 
 printer_count = 60
 main_chat_id = 808976737
-dbName = '/data/testDB.db'
-
+adminID = 808976737
 
 API_TOKEN = os.environ.get("API_TOKEN")
+REG_PW = os.environ.get("REG_PW")
 
-if not API_TOKEN: print("API-токен отсутствует в среде окружения")
+
+dbName = "DB.db"
+dbPath = 'data/test.db' if os.environ.get("IS_DEVELOPMENT_ENV") else '/data/'+dbName
 
 dbDatetimeFormat = "%y.%m.%d %H:%M"
 
@@ -41,7 +52,7 @@ component_list = (
 )
 
 event_list = (
-    'Замена компл.',
+    'Замена',
     'Плановое ТО',
     'Чистка сопла',
     'Чистка шестерни',

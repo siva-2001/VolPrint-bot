@@ -1,22 +1,35 @@
 import datetime
 import telebot
 import settings, exceptions, dbOperator
+import AuthModule
 
 bot = telebot.TeleBot(settings.API_TOKEN, parse_mode="HTML", skip_pending=True)
 
 def cancelDecorator(func):
     def wrapper(*args, **kwargs):
-        if args[0].text== "ОТМЕНА":
+        if args[0].text== "Отмена":
             bot.clear_step_handler_by_chat_id(chat_id=args[0].from_user.id)
             if args[0].from_user.id in dbOperator.notes.keys(): dbOperator.notes.pop(args[0].from_user.id)
             handle_start_message(*args, **kwargs)
         else: func(*args, **kwargs)
     return wrapper
 
+def checkAuthDecorator(func):
+    def wrapper(*args, **kwargs):
+        import AuthModule
+        if AuthModule.UserAuth.userIsAuth(args[0].from_user.id): func(*args, **kwargs)
+        else:
+            reply_with_buttons(
+                chat_id=args[0].from_user.id,
+                text="У тебя нет прав для этого действия. Необходимо зарегистрироваться",
+                buttons_list=["Ок"],
+                withoutCancel=True,
+            )
+    return wrapper
+
 def checkInput(func):
     def wrapper(*args, **kwargs):
         if len(args[0].text) > 4096:
-            print(type(args[0].text))
             args[0].text = args[0].text[:4095]
             func(*args, **kwargs)
 
@@ -50,10 +63,9 @@ def list_notes_msg_view(title, param_names, param_list):
 
 def reply_with_buttons(chat_id, text, buttons_list=None, withoutCancel=False, next_step=None, row_width=1):
     btn_list = list()
-    if not withoutCancel: btn_list.append("ОТМЕНА")
+    if not withoutCancel: btn_list.append("Отмена")
     if buttons_list: btn_list = list(buttons_list) + btn_list
     reply_markup = telebot.types.ReplyKeyboardMarkup(row_width=row_width, resize_keyboard=True, one_time_keyboard=True)
-    print(btn_list)
     reply_markup.add(*btn_list)
     if next_step:
         bot.register_next_step_handler(
@@ -74,14 +86,70 @@ def reply_with_buttons(chat_id, text, buttons_list=None, withoutCancel=False, ne
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 
+#       СЦЕНАРИЙ РЕГИСТРАЦИИ
+# ______________________________________________________________________________________________________________________
+# ______________________________________________________________________________________________________________________
+
+@bot.message_handler(commands=["registration"])
+def user_registration(message):
+    if not AuthModule.UserAuth.userIsAuth(message.from_user.id):
+        reply_with_buttons(
+            chat_id=message.from_user.id,
+            text="Введи кодовую строку:",
+            next_step=user_registration2,
+        )
+    else:
+        reply_with_buttons(
+            chat_id=message.from_user.id,
+            text="Ты уже зарегистрирован!",
+            buttons_list=["Ок"], withoutCancel=True,
+        )
+
+def user_registration2(message):
+    if settings.REG_PW is None:
+        reply_with_buttons(
+            chat_id=message.from_user.id,
+            text="Регистрационный пароль не задан, регистрация новых пользователей временно недоступна.",
+            next_step=user_registration3,
+        )
+    #     РАССЫЛКА СООБЩЕНИЯ ОБ ОШИБКЕ АДМИНАМ
+    else:
+        if message.text == settings.REG_PW:
+            reply_with_buttons(
+                chat_id=message.from_user.id,
+                text="Как тебя зовут?",
+                next_step=user_registration3,
+            )
+        else:
+            reply_with_buttons(
+                chat_id=message.from_user.id,
+                text="Кодовая строка не верная. \nПопробуй ещё раз:",
+                next_step=user_registration2,
+            )
+
+
+def user_registration3(message):
+    AuthModule.UserAuth.createUser(
+        userID=message.from_user.id,
+        username=message.from_user.username,
+        name = message.text,
+    )
+    reply_with_buttons(
+        chat_id=message.from_user.id,
+        text="Готово",
+        buttons_list=["Ок"], withoutCancel=True,
+    )
+
+# ______________________________________________________________________________________________________________________
+# ______________________________________________________________________________________________________________________
+
 #       СЦЕНАРИЙ ЗАМЕНЫ КОМПЛЕКТУЮЩЕЙ
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 
-# @bot.message_handler(func=lambda msg: msg.text=="На главную")
-# def mainPageRef(message):
 
 @bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["comp_replacement"])
+@checkAuthDecorator
 def handle_component_replacement(message):
     reply_with_buttons(
         chat_id=message.chat.id,
@@ -152,6 +220,7 @@ def component_replacement_step3(message):
             chat_id=message.chat.id,
             text=f'Готово! Проведена операция: {note["operation"]} "{note["component"]}"',
             withoutCancel=True,
+            buttons_list=["Ок"]
         )
     except exceptions.ComponentException:
         reply_with_buttons(
@@ -169,6 +238,7 @@ def component_replacement_step3(message):
 
 
 @bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["warehouse_update"])
+@checkAuthDecorator
 def handle_warehouse_update(message):
     reply_with_buttons(
         chat_id=message.chat.id,
@@ -294,7 +364,12 @@ def warehouse_update_step_4(message):
     try:
         dbOperator.notes[message.from_user.id]['count'] = int(message.text)
         dbOperator.WarehouseElemNote.writeInDB(dbOperator.notes.pop(message.from_user.id))
-        reply_with_buttons(chat_id=message.chat.id, text="Складская позиция обновлена!")
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text="Складская позиция обновлена!",
+            buttons_list=["Ок"],
+            withoutCancel=True,
+        )
     except ValueError:
             reply_with_buttons(
                 chat_id=message.chat.id,
@@ -308,9 +383,7 @@ def warehouse_update_step_4(message):
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 
-
 @bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["printer_story"])
-@cancelDecorator
 def show_printer_story_step1(message):
     reply_with_buttons(
         chat_id=message.chat.id,
@@ -364,9 +437,9 @@ def show_warehouse_step1(message):
     reply_with_buttons(
         chat_id=message.chat.id,
         text=text,
+        buttons_list=["Ок"],
+        withoutCancel=True,
     )
-
-
 
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________

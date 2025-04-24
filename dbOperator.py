@@ -24,7 +24,7 @@ class DBOperator():
     @staticmethod
     def writeComponentReplacement(param_list):
         try:
-            conn = sqlite3.connect(settings.dbName)
+            conn = sqlite3.connect(settings.dbPath)
             cursor = conn.cursor()
             sql = f"INSERT INTO {ReplacementNote.note_type} (printer_number, operation, warehouseElement_name, employee_id, dateTime) VALUES (?, ?, ?, ?, ?);"
 
@@ -37,7 +37,7 @@ class DBOperator():
     @staticmethod
     def editWarehouseElement(update_param_list, insert_param_list):
         try:
-            conn = sqlite3.connect(settings.dbName)
+            conn = sqlite3.connect(settings.dbPath)
             cursor = conn.cursor()
             sql_update = f"""
                 UPDATE {WarehouseElemNote.note_type}
@@ -61,26 +61,27 @@ class DBOperator():
     def getPrinterStory(number):
         if (number < 1 or number > settings.printer_count): raise exceptions.PrinterCountException
 
-        with sqlite3.connect(settings.dbName) as conn:
+        with sqlite3.connect(settings.dbPath) as conn:
 
             res = conn.cursor().execute(f"""
-                SELECT component_replacement.warehouseElement_name, employee.username, component_replacement.dateTime 
+                SELECT component_replacement.operation, component_replacement.warehouseElement_name, 
+                employee.name, component_replacement.dateTime
                 FROM component_replacement
                 LEFT JOIN employee ON component_replacement.employee_id = employee.tg_user_id
                 WHERE printer_number = {number};
             """).fetchall()
-            res = [(x[0], x[1], stringToDatetime(x[2])) for x in res]
+            res = [(" ".join(x[0:2]), x[2], stringToDatetime(x[3])) if x[1] else (x[0], x[2], stringToDatetime(x[3])) for x in res]
             return {
                 "field_names" : (
-                    "Операция" + 4*" ",
-                    "Сотрудник" + 3*" ",
-                    "Дата" + 15*" "),
+                    "Операция" + 3*" ",
+                    "Сотрудник" + 2*" ",
+                    "Дата" + 13*" "),
                 "res": res
             }
 
     @staticmethod
     def getWarehouseContents():
-        with (sqlite3.connect(settings.dbName) as conn):
+        with (sqlite3.connect(settings.dbPath) as conn):
             # format = {
             #     "field_names":["field_name1", "field_name2"],
             #     "res": [(count1, required_count1), (count2, required_count2)]
@@ -96,7 +97,7 @@ class DBOperator():
 
     @staticmethod
     def getInventoryNeedsPositions():
-        with sqlite3.connect(settings.dbName) as conn:
+        with sqlite3.connect(settings.dbPath) as conn:
             completed = conn.cursor().execute("""
                 SELECT warehouseElement_name, dateTime FROM warehouse_elem_update
             """).fetchall()
@@ -106,14 +107,12 @@ class DBOperator():
             } if stringToDatetime(el[1]).day == datetime.datetime.now().day else None for el in completed]
             completed = list(set([x["pos"] for x in completed if x]))
             res = list(settings.warehouse_list)
-            print(completed)
-            print(res)
             for el in completed: res.remove(el)
             return res
 
     @staticmethod
     def getResponsiblePosiotion():
-        with sqlite3.connect(settings.dbName) as conn:
+        with sqlite3.connect(settings.dbPath) as conn:
             res = conn.cursor().execute("""
                 SELECT employee.tg_user_id, warehouse_position.name FROM warehouse_position
                 LEFT JOIN employee ON employee.tg_user_id = warehouse_position.responsible_for_the_order
@@ -124,6 +123,8 @@ class DBOperator():
                 if int(item[0]) not in ans.keys(): ans[int(item[0])] = [item[1]]
                 else: ans[int(item[0])].append(item[1])
             return ans
+
+
 
 
 class ReplacementNote():
