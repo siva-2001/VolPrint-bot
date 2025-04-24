@@ -249,7 +249,6 @@ def handle_warehouse_update(message):
 
 @cancelDecorator
 def warhouse_update_step_1(message):
-    print(message.text)
     if message.text == settings.warehouse_update_types[0]: inventory_start(message)
     elif message.text == settings.warehouse_update_types[1]: warehouse_update_step_2(message)
     else:
@@ -311,8 +310,8 @@ def inventory_circle(message):
     except IndexError:
         reply_with_buttons(
             chat_id=message.chat.id,
-            text="Инвентаризация завершена",
-            buttons_list=["Ок"]
+            text="Инвентаризация завершена!",
+            buttons_list=["Ок"], withoutCancel=True,
         )
         inventory_end(message)
 
@@ -320,11 +319,6 @@ def inventory_circle(message):
 def inventory_end(message):
     dbOperator.notes.pop(message.from_user.id)
     responsibles = dbOperator.DBOperator.getResponsiblePosiotion()
-    reply_with_buttons(
-        chat_id=message.chat.id,
-        text="Инвентаризация завершена!",
-        next_step=inventory_circle
-    )
     for id in responsibles.keys():
         text = "Чел, срочно закупись:\n\n"
         reply_with_buttons(chat_id=id, text=text+"\n".join(responsibles[id]))
@@ -385,6 +379,7 @@ def warehouse_update_step_4(message):
 # ______________________________________________________________________________________________________________________
 
 @bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["printer_story"])
+@cancelDecorator
 def show_printer_story_step1(message):
     reply_with_buttons(
         chat_id=message.chat.id,
