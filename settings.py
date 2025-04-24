@@ -6,22 +6,20 @@ REG_PW - Регистрационный пароль
 import os, sys
 
 printer_count = 60
-main_chat_id = 808976737
+main_chat_id = -4720212506
 adminID = 808976737
 
 API_TOKEN = os.environ.get("API_TOKEN")
 REG_PW = os.environ.get("REG_PW")
+DBName = "DB.db"
 
-
-dbName = "DB.db"
-dbPath = 'data/test.db' if os.environ.get("IS_DEVELOPMENT_ENV") else '/data/'+dbName
-
+dbPath = 'data/test.db' if os.environ.get("IS_DEVELOPMENT_ENV") else '/data/' + DBName
 dbDatetimeFormat = "%y.%m.%d %H:%M"
 
 int_value_error_message = "Нужно ввести целое положительное число"
 
 def warehouse_elem_count_request(elem):
-    return f"Введите количество позиции [{elem}]:" if isinstance(elem, str) else None
+    return f'Введите количество позиции "{elem}":' if isinstance(elem, str) else None
 
 
 start_menu_commands = {

@@ -58,7 +58,7 @@ class DBOperator():
             conn.close()
 
     @staticmethod
-    def getPrinterStory(number):
+    def getPrinterStory(number, len=999):
         if (number < 1 or number > settings.printer_count): raise exceptions.PrinterCountException
 
         with sqlite3.connect(settings.dbPath) as conn:
@@ -68,7 +68,9 @@ class DBOperator():
                 employee.name, component_replacement.dateTime
                 FROM component_replacement
                 LEFT JOIN employee ON component_replacement.employee_id = employee.tg_user_id
-                WHERE printer_number = {number};
+                WHERE printer_number = {number}
+                ORDER BY component_replacement.dateTime
+                LIMIT {len};
             """).fetchall()
             res = [(" ".join(x[0:2]), x[2], stringToDatetime(x[3])) if x[1] else (x[0], x[2], stringToDatetime(x[3])) for x in res]
             return {
@@ -130,12 +132,12 @@ class DBOperator():
 class ReplacementNote():
     note_type = 'component_replacement'
     @staticmethod
-    def get_component_replacement_note(message):
-        if int(message.text) > 0 and int(message.text) < settings.printer_count:
+    def get_component_replacement_note(user_id, text):
+        if int(text) > 0 and int(text) < settings.printer_count:
             return {
                 "note_type" : ReplacementNote.note_type,
-                "employee_id": message.from_user.id,
-                "printer_number":int(message.text),
+                "employee_id": user_id,
+                "printer_number":int(text),
                 "operation":None,
                 "component": None,
                 "dateTime" : datetime.datetime.now().strftime(settings.dbDatetimeFormat)

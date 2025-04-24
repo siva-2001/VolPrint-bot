@@ -17,6 +17,7 @@ def mainScheduleFunction():
         schedule.every().friday.at("08:00").do(inventory_notificatioin)
         schedule.every().friday.at("09:00").do(inventory_notificatioin)
         schedule.every().friday.at("10:00").do(inventory_notificatioin)
+        schedule.every(10).seconds.do(inventory_notificatioin)
 
         schedule.every().day.at("05:00").do(sendReservDBCopy)
 
@@ -31,11 +32,9 @@ def mainScheduleFunction():
 
 def inventory_notificatioin():
     count = len(dbOperator.DBOperator.getInventoryNeedsPositions())
-    mainChatID = settings.main_chat_id
-
     if count > 0:
         text = f"Напоминание провести инвентаризацию. Необходимо обновление {count} позиций"
-        TgBot.reply_with_buttons(chat_id=mainChatID, text=text)
+        TgBot.reply_with_buttons(chat_id=settings.main_chat_id, text=text)
 
 def purchase_necessity_notificatioin():
     responsibles = dbOperator.DBOperator.getResponsiblePosiotion()
@@ -48,5 +47,5 @@ def sendReservDBCopy():
         settings.adminID,
         open(settings.dbPath, 'rb'),
         disable_notification=True,
-        visible_file_name=" ".join([datetime.datetime.now().strftime("%d.%m.%y"), settings.dbName]),
+        visible_file_name=" ".join([datetime.datetime.now().strftime("%d.%m.%y"), settings.DBName]),
     )
