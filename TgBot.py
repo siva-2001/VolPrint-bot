@@ -287,7 +287,9 @@ def inventory_start(message):
 def inventory_circle(message):
     try:
         whEl = dbOperator.notes[message.from_user.id]["whElemNotes"].pop(0)
+        if int(message.text) < 0: raise ValueError
         whEl["count"] = int(message.text)
+
         dbOperator.WarehouseElemNote.writeInDB(whEl)
         elem_type = dbOperator.notes[message.from_user.id]["posList"].pop(0)
         dbOperator.notes[message.from_user.id]["whElemNotes"].append(
@@ -357,6 +359,7 @@ def warehouse_update_step_3(message):
 @cancelDecorator
 def warehouse_update_step_4(message):
     try:
+        if int(message.text) < 0: raise ValueError
         dbOperator.notes[message.from_user.id]['count'] = int(message.text)
         dbOperator.WarehouseElemNote.writeInDB(dbOperator.notes.pop(message.from_user.id))
         reply_with_buttons(

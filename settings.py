@@ -18,7 +18,7 @@ dbPath = 'data/test.db' if os.environ.get("IS_DEVELOPMENT_ENV") else '/data/'+db
 
 dbDatetimeFormat = "%y.%m.%d %H:%M"
 
-int_value_error_message = "Нужно ввести целое число"
+int_value_error_message = "Нужно ввести целое положительное число"
 
 def warehouse_elem_count_request(elem):
     return f"Введите количество позиции [{elem}]:" if isinstance(elem, str) else None
