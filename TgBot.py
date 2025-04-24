@@ -31,7 +31,7 @@ def checkInput(func):
     def wrapper(*args, **kwargs):
         if len(args[0].text) > 4096:
             args[0].text = args[0].text[:4095]
-            func(*args, **kwargs)
+        func(*args, **kwargs)
 
 
     return wrapper
@@ -249,6 +249,7 @@ def handle_warehouse_update(message):
 
 @cancelDecorator
 def warhouse_update_step_1(message):
+    print(message.text)
     if message.text == settings.warehouse_update_types[0]: inventory_start(message)
     elif message.text == settings.warehouse_update_types[1]: warehouse_update_step_2(message)
     else:
@@ -259,7 +260,7 @@ def warhouse_update_step_1(message):
             buttons_list=settings.warehouse_update_types
         )
 
-@checkInput
+# @checkInput
 @cancelDecorator
 def inventory_start(message):
     try:

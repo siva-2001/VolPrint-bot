@@ -3,10 +3,6 @@
 API_TOKEN - телеграм API токен
 REG_PW - Регистрационный пароль
 """
-
-
-
-
 import os, sys
 
 printer_count = 60
