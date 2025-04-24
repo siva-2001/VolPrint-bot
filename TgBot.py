@@ -365,8 +365,9 @@ def warehouse_update_step_4(message):
         reply_with_buttons(
             chat_id=message.chat.id,
             text="Складская позиция обновлена!",
-            buttons_list=["Ок"],
+            buttons_list=["Обновить ещё одну позицию"],
             withoutCancel=True,
+            next_step=warehouse_update_step_3,
         )
     except ValueError:
             reply_with_buttons(
