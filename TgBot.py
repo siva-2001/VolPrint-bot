@@ -545,7 +545,7 @@ def show_full_printer_story(message):
     printer_number = dbOperator.notes.pop(message.from_user.id)["printer_number"]
     story = dbOperator.DBOperator.getPrinterStory(printer_number)
     text = table_notes_msg_view(
-        f"Полная история принтера №{printer_number} ({len(story["res"])} записей)",
+        f"Полная история принтера №{printer_number} \n({len(story["res"])} записей)",
         story["field_names"],
         story["res"]
     )
