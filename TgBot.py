@@ -1,4 +1,6 @@
 import datetime
+import random
+
 import telebot
 from schedule import next_run
 
@@ -66,7 +68,7 @@ def list_notes_msg_view(title, param_names, param_list):
         str_list.append(" ".join([str(x) for x in note]))
     return text + "\n".join(str_list) + "\n\n"
 
-def reply_with_buttons(chat_id, text, buttons_list=None, withoutCancel=False, next_step=None, row_width=1):
+def reply_with_buttons(chat_id, text, buttons_list=None, withoutCancel=False, next_step=None, row_width=1, **kwargs):
     btn_list = list()
     if not withoutCancel: btn_list.append("Отмена")
     if buttons_list: btn_list = list(buttons_list) + btn_list
@@ -79,7 +81,10 @@ def reply_with_buttons(chat_id, text, buttons_list=None, withoutCancel=False, ne
                 text=text,
                 reply_markup = reply_markup,
             ),
-            next_step
+            next_step,
+            **kwargs,
+
+
         )
     else:
         bot.send_message(
@@ -343,7 +348,7 @@ def inventory_end(message):
     responsibles = dbOperator.DBOperator.getResponsiblePosiotion()
     for id in responsibles.keys():
         text = "Чел, срочно закупись:\n\n"
-        reply_with_buttons(chat_id=id, text=text+"\n".join(responsibles[id]))
+        reply_with_buttons(chat_id=id, text=text+"\n".join(responsibles[id]), buttons_list=["Ок"], withoutCancel=True)
 
 
 @cancelDecorator
@@ -421,16 +426,18 @@ def show_printer_story_step1(message):
         )
 
 @cancelDecorator
-def show_printer_story_step2(message):
+def show_printer_story_step2(message, printer_number=None):
     try:
-        story = dbOperator.DBOperator.getPrinterStory(int(message.text), 5)
+        if not printer_number:dbOperator.notes[message.from_user.id] = {"printer_number":int(message.text)}
+        else: dbOperator.notes[message.from_user.id] = {"printer_number":printer_number}
+
+        story = dbOperator.DBOperator.getPrinterStory(dbOperator.notes[message.from_user.id]["printer_number"], 5)
         if len(story["res"]) == 0: raise exceptions.StoryPrinterLengthException
-        text = table_notes_msg_view(f"История принтера №{message.text}", story["field_names"], story["res"])
-        dbOperator.notes[message.from_user.id] = int(message.text)
+        text = table_notes_msg_view(f"История принтера №{dbOperator.notes[message.from_user.id]["printer_number"]}", story["field_names"], story["res"])
         reply_with_buttons(
             chat_id=message.chat.id,
             text=text,
-            buttons_list=["Смотреть историю другого принтера", "Полная история прентера"],
+            buttons_list=["Смотреть историю другого принтера", "Полная история прентера", "Отменить последнее действие"],
             next_step=show_printer_story_step3,
         )
     except ValueError:
@@ -455,28 +462,100 @@ def show_printer_story_step2(message):
 
 @cancelDecorator
 def show_printer_story_step3(message):
-    if message.text == "Смотреть историю другого принтера": show_printer_story_step1(message)
-    elif message.text == "Полная история прентера":
-        printer_number = dbOperator.notes.pop(message.from_user.id)
-        story = dbOperator.DBOperator.getPrinterStory(printer_number)
-        text = table_notes_msg_view(
-            f"Полная история принтера №{printer_number} ({len(story["res"])} записей)",
-            story["field_names"],
-            story["res"]
-        )
+    try:
+        if message.text == "Смотреть историю другого принтера": show_printer_story_step1(message)
+        elif message.text == "Полная история прентера": show_full_printer_story(message)
+        elif message.text == "Отменить последнее действие": component_replacement_cancel_step1(message)
+
+        else:
+            reply_with_buttons(
+                chat_id=message.chat.id,
+                text="Сообщение не распознано",
+                buttons_list=["Смотреть историю другого принтера"],
+                next_step=show_printer_story_step1,
+            )
+    except IndexError:
         reply_with_buttons(
             chat_id=message.chat.id,
-            text=text,
-            buttons_list=["Смотреть историю другого принтера"],
-            next_step=show_printer_story_step1,
+            text="История принтера пуста",
+            next_step=component_replacement_step4,
+            buttons_list=['Возврат к работе с принтером']
         )
-    else:
+    except ValueError:
         reply_with_buttons(
             chat_id=message.chat.id,
-            text="Сообщение не распознано",
-            buttons_list=["Смотреть историю другого принтера"],
-            next_step=show_printer_story_step1,
+            text=settings.int_value_error_message,
+            next_step=component_replacement_cancel_step1,
         )
+
+def component_replacement_cancel_step1(message):
+        dbOperator.notes[message.from_user.id]["code"] = random.randint(1000, 10000)
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text=f'Введите код поддтверждения: {dbOperator.notes[message.from_user.id]["code"]}',
+            next_step=component_replacement_cancel_step2,
+        )
+
+
+def component_replacement_cancel_step2(message):
+    try:
+        print(dbOperator.notes[message.from_user.id])
+        if int(message.text) == dbOperator.notes[message.from_user.id]["code"]:
+            note = dbOperator.notes.pop(message.from_user.id)
+            if(dbOperator.DBOperator.deleteLastComponentReplacement(note["printer_number"])):
+                reply_with_buttons(
+                    chat_id=message.chat.id,
+                    text="Готово! \nПоследняя запись удалена!",
+                    next_step=show_printer_story_step2,
+                    withoutCancel=True, buttons_list=["Ок","Вернуться к истории принтера"],
+                    printer_number=note["printer_number"]
+                )
+            else:
+                reply_with_buttons(
+                    chat_id=message.chat.id,
+                    text="Последняя запись сделана слишком давно, для её удаления обратись к админу",
+                    next_step=show_printer_story_step2,
+                    withoutCancel=True, buttons_list=["Ок", "Вернуться к истории принтера"],
+                    printer_number=note["printer_number"]
+                )
+        else:
+            reply_with_buttons(
+                chat_id=message.chat.id,
+                text="Код не совпал, попробуйте ещё раз:",
+                next_step=component_replacement_cancel_step2,
+
+            )
+    except IndexError:
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text="История принтера пуста, удалять нечего",
+            next_step = show_printer_story_step2,
+            withoutCancel = True, buttons_list = ["Ок", "Вернуться к истории принтера"],
+            printer_number = note["printer_number"]
+        )
+    except ValueError:
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text=settings.int_value_error_message,
+            next_step=component_replacement_cancel_step2,
+        )
+
+
+def show_full_printer_story(message):
+    printer_number = dbOperator.notes.pop(message.from_user.id)["printer_story"]
+    story = dbOperator.DBOperator.getPrinterStory(printer_number)
+    text = table_notes_msg_view(
+        f"Полная история принтера №{printer_number} ({len(story["res"])} записей)",
+        story["field_names"],
+        story["res"]
+    )
+    reply_with_buttons(
+        chat_id=message.chat.id,
+        text=text,
+        buttons_list=["Смотреть историю другого принтера"],
+        next_step=show_printer_story_step1,
+    )
+
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 #       ПОЛУЧЕНИЕ СОДЕРЖАНИЯ СКЛАДА

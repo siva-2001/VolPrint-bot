@@ -35,6 +35,23 @@ class DBOperator():
             conn.close()
 
     @staticmethod
+    def deleteLastComponentReplacement(printer_number):
+        with sqlite3.connect(settings.dbPath) as conn:
+            deleteReplNote = conn.cursor().execute(f"""
+                    SELECT id, dateTime FROM component_replacement 
+                    WHERE printer_number = {printer_number}
+                    ORDER BY component_replacement.dateTime DESC
+                    LIMIT 1;
+                """).fetchall()[0]
+            print(deleteReplNote)
+            if stringToDatetime(deleteReplNote[1]).date() == datetime.datetime.now().date():
+                conn.cursor().execute(f"DELETE FROM component_replacement WHERE id = {deleteReplNote[0]}")
+                return True
+            else: return False
+
+
+
+    @staticmethod
     def editWarehouseElement(update_param_list, insert_param_list):
         try:
             conn = sqlite3.connect(settings.dbPath)
@@ -69,7 +86,7 @@ class DBOperator():
                 FROM component_replacement
                 LEFT JOIN employee ON component_replacement.employee_id = employee.tg_user_id
                 WHERE printer_number = {number}
-                ORDER BY component_replacement.dateTime
+                ORDER BY component_replacement.dateTime DESC
                 LIMIT {len};
             """).fetchall()
             res = [(" ".join(x[0:2]), x[2], stringToDatetime(x[3])) if x[1] else (x[0], x[2], stringToDatetime(x[3])) for x in res]

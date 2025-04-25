@@ -17,7 +17,6 @@ def mainScheduleFunction():
         schedule.every().friday.at("08:00").do(inventory_notificatioin)
         schedule.every().friday.at("09:00").do(inventory_notificatioin)
         schedule.every().friday.at("10:00").do(inventory_notificatioin)
-        schedule.every(10).seconds.do(inventory_notificatioin)
 
         schedule.every().day.at("05:00").do(sendReservDBCopy)
 
