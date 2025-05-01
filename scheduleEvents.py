@@ -4,6 +4,7 @@ import dbOperator
 import settings
 import TgBot
 import datetime
+import telebot
 
 def mainScheduleFunction():
     try:
@@ -27,7 +28,8 @@ def inventory_notificatioin():
     if count > 0:
         TgBot.bot.send_message(
             chat_id=settings.main_chat_id,
-            text=f"Напоминание провести инвентаризацию. Необходимо обновление {count} позиций"
+            text=f"Напоминание провести инвентаризацию. Необходимо обновление {count} позиций",
+            reply_markup=telebot.types.ReplyKeyboardRemove()
         )
 
 def purchase_necessity_notificatioin():
