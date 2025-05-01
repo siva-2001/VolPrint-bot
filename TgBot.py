@@ -2,15 +2,14 @@ import datetime
 import random
 
 import telebot
-from schedule import next_run
 
 import settings, exceptions, dbOperator
 import AuthModule
 
 bot = telebot.TeleBot(settings.API_TOKEN, parse_mode="HTML", skip_pending=True)
 
-@bot.message_handler(func=lambda msg: msg.chat.id == settings.main_chat_id)
-def poof(message): pass # функция-заглушка обработки сообщений из общего чата
+@bot.message_handler(chat_types=["supergroup", "group"])
+def poof(message): pass      #ЗАГЛУШКА ДЛЯ ГРУППОВЫХ ЧАТОВ
 
 def cancelDecorator(func):
     def wrapper(*args, **kwargs):
@@ -83,8 +82,6 @@ def reply_with_buttons(chat_id, text, buttons_list=None, withoutCancel=False, ne
             ),
             next_step,
             **kwargs,
-
-
         )
     else:
         bot.send_message(
@@ -170,7 +167,7 @@ def handle_component_replacement(message):
 def component_replacement_step1(message):
     try:
         dbOperator.notes[message.from_user.id] = (
-            dbOperator.ReplacementNote.get_component_replacement_note(message.from_user.id, message.text))
+            dbOperator.ReplacementNote.get_component_replacement_note(message.from_user.username, message.text))
         reply_with_buttons(
             chat_id=message.chat.id,
             text="Что будем делать?",
@@ -206,7 +203,7 @@ def component_replacement_step2(message):
             note =  dbOperator.notes.pop(message.from_user.id)
             dbOperator.ReplacementNote.writeInDB(note)
             dbOperator.notes[message.from_user.id] = (
-                dbOperator.ReplacementNote.get_component_replacement_note(message.from_user.id, note["printer_number"]))
+                dbOperator.ReplacementNote.get_component_replacement_note(message.from_user.username, note["printer_number"]))
             reply_with_buttons(
                 chat_id=message.chat.id,
                 text=f'Готово! Проведена операция: {note["operation"]}',
@@ -230,12 +227,12 @@ def component_replacement_step3(message):
         note['component'] = message.text
         dbOperator.ReplacementNote.writeInDB(note)
         dbOperator.notes[message.from_user.id] = (
-            dbOperator.ReplacementNote.get_component_replacement_note(message.from_user.id, note["printer_number"]))
+            dbOperator.ReplacementNote.get_component_replacement_note(message.from_user.username, note["printer_number"]))
         reply_with_buttons(
             chat_id=message.chat.id,
             text=f'Готово! Проведена операция: {note["operation"]} "{note["component"]}"',
             withoutCancel=True,
-            buttons_list=["Ок", "Продолжить обслуживание текущего принтера"],
+            buttons_list=["Ок", ],
             next_step=component_replacement_step4,
         )
     except exceptions.ComponentException:
@@ -248,13 +245,20 @@ def component_replacement_step3(message):
 
 @cancelDecorator
 def component_replacement_step4(message):
-    reply_with_buttons(
-        chat_id=message.chat.id,
-        text="Что будем делать?",
-        next_step=component_replacement_step2,
-        buttons_list=settings.event_list
-    )
-
+    if message.text == "Продолжить обслуживание текущего принтера":
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text="Что будем делать?",
+            next_step=component_replacement_step2,
+            buttons_list=settings.event_list
+        )
+    else:
+        reply_with_buttons(
+            chat_id=message.chat.id,
+            text="Команда не распознана",
+            buttons_list=["Ок"],
+            withoutCancel=True,
+        )
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 #       СЦЕНАРИЙ ОБНОВЛЕНИЯ СКЛАДА
@@ -292,7 +296,7 @@ def inventory_start(message):
 
         elem_type = dbOperator.notes[message.from_user.id]["posList"].pop(0)
         dbOperator.notes[message.from_user.id]["whElemNotes"].append(
-            dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.id, elem_type)
+            dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.username, elem_type)
         )
 
         reply_with_buttons(
@@ -318,7 +322,7 @@ def inventory_circle(message):
         dbOperator.WarehouseElemNote.writeInDB(whEl)
         elem_type = dbOperator.notes[message.from_user.id]["posList"].pop(0)
         dbOperator.notes[message.from_user.id]["whElemNotes"].append(
-            dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.id, elem_type)
+            dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.username, elem_type)
         )
         reply_with_buttons(
             chat_id=message.chat.id,
@@ -366,7 +370,7 @@ def warehouse_update_step_3(message):
     try:
         if not message.text in settings.warehouse_list: raise exceptions.WarehouseElementTypeException
         dbOperator.notes[message.from_user.id] =\
-            dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.id, message.text)
+            dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.username, message.text)
         reply_with_buttons(
             chat_id=message.chat.id,
             text=settings.warehouse_elem_count_request(message.text),
@@ -545,7 +549,7 @@ def show_full_printer_story(message):
     printer_number = dbOperator.notes.pop(message.from_user.id)["printer_number"]
     story = dbOperator.DBOperator.getPrinterStory(printer_number)
     text = table_notes_msg_view(
-        f"Полная история принтера №{printer_number} \n({len(story["res"])} записей)",
+        f"Полная история принтера №{printer_number} \n(записей: {len(story["res"])})",
         story["field_names"],
         story["res"]
     )

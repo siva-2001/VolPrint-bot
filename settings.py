@@ -5,15 +5,14 @@ REG_PW - Регистрационный пароль
 """
 import os, sys
 
-printer_count = 60
-main_chat_id = -4720212506
-adminID = 808976737
 
+printer_count = 60 if not os.environ.get("PRINTER_COUNT") else int(os.environ.get("PRINTER_COUNT"))
+main_chat_id = os.environ.get("MAIN_CHAT_ID")
 API_TOKEN = os.environ.get("API_TOKEN")
 REG_PW = os.environ.get("REG_PW")
-DBName = "DB.db"
+DBName = "test.db" if not os.environ.get("DB_NAME") else os.environ.get("DB_NAME")
+dbPath = 'data/' + DBName if os.environ.get("IS_DEVELOPMENT_ENV") else '/data/' + DBName
 
-dbPath = 'data/test.db' if os.environ.get("IS_DEVELOPMENT_ENV") else '/data/' + DBName
 dbDatetimeFormat = "%y.%m.%d %H:%M"
 
 int_value_error_message = "Нужно ввести целое положительное число"

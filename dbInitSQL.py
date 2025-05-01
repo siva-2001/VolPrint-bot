@@ -18,8 +18,8 @@ CREATE TABLE warehouse_position (
     name TEXT PRIMARY KEY,
     current_count INTEGER,
     required_minimum INTEGER,
-    responsible_for_the_order TEXT NOT NULL,
-    FOREIGN KEY (responsible_for_the_order) REFERENCES employee (tg_user_id)
+    responsible_for_the_order TEXT,
+    FOREIGN KEY (responsible_for_the_order) REFERENCES employee (username)
 );
 
 CREATE TABLE component_replacement (
@@ -27,18 +27,18 @@ CREATE TABLE component_replacement (
     printer_number INTEGER,
     operation TEXT,
     warehouseElement_name TEXT,
-    employee_id INTEGER,
+    employee_username INTEGER,
     dateTime TEXT,
     FOREIGN KEY (warehouseElement_name)  REFERENCES warehouse_position (name),
-    FOREIGN KEY (employee_id)  REFERENCES employee (tg_user_id)
+    FOREIGN KEY (employee_username)  REFERENCES employee (username)
 );
 
 CREATE TABLE warehouse_elem_update (
     id INTEGER PRIMARY KEY,
     warehouseElement_name TEXT,
-    employee_id INTEGER,
+    employee_username INTEGER,
     dateTime TEXT,
-    FOREIGN KEY (employee_id)  REFERENCES employee (tg_chat_id),
+    FOREIGN KEY (employee_username)  REFERENCES employee (username),
     FOREIGN KEY (warehouseElement_name)  REFERENCES warehouse_position (name)
 );
 """
@@ -62,7 +62,7 @@ def dbInitial():
                 conn = sqlite3.connect(settings.dbPath)
                 cursor = conn.cursor()
                 sql = f"""INSERT INTO {dbOperator.WarehouseElemNote.note_type}  
-                    (name, current_count, required_minimum, responsible_for_the_order) VALUES (?, ?, ?, {settings.adminID});"""
+                    (name, current_count, required_minimum, responsible_for_the_order) VALUES (?, ?, ?, NULL);"""
                 cursor.executemany(sql, param_list)
                 conn.commit()
             finally:
@@ -97,9 +97,3 @@ def uploadPrinterHistory(fileName):
         print(printerNumber, operation, component, dt)
 
 
-
-
-
-
-
-# uploadPrinterHistory("printerHistory.txt")

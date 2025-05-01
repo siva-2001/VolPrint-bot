@@ -26,7 +26,7 @@ class DBOperator():
         try:
             conn = sqlite3.connect(settings.dbPath)
             cursor = conn.cursor()
-            sql = f"INSERT INTO {ReplacementNote.note_type} (printer_number, operation, warehouseElement_name, employee_id, dateTime) VALUES (?, ?, ?, ?, ?);"
+            sql = f"INSERT INTO {ReplacementNote.note_type} (printer_number, operation, warehouseElement_name, employee_username, dateTime) VALUES (?, ?, ?, ?, ?);"
 
             cursor.executemany(sql, param_list)
             conn.commit()
@@ -49,8 +49,6 @@ class DBOperator():
                 return True
             else: return False
 
-
-
     @staticmethod
     def editWarehouseElement(update_param_list, insert_param_list):
         try:
@@ -61,8 +59,8 @@ class DBOperator():
                 SET current_count = ?
                 WHERE name = ?; 
             """
-            sql_insert = "INSERT INTO warehouse_elem_update (warehouseElement_name, employee_id, dateTime) VALUES (?, ?, ?);"
-
+            sql_insert = "INSERT INTO warehouse_elem_update (warehouseElement_name, employee_username, dateTime) VALUES (?, ?, ?);"
+            # добавить в warehouse_elem_update старое и новое значение позиции
             cursor.executemany(sql_update, update_param_list)
             cursor.executemany(sql_insert, insert_param_list)
 
@@ -84,7 +82,7 @@ class DBOperator():
                 SELECT component_replacement.operation, component_replacement.warehouseElement_name, 
                 employee.name, component_replacement.dateTime
                 FROM component_replacement
-                LEFT JOIN employee ON component_replacement.employee_id = employee.tg_user_id
+                LEFT JOIN employee ON component_replacement.employee_username = employee.username
                 WHERE printer_number = {number}
                 ORDER BY component_replacement.dateTime DESC
                 LIMIT {len};
@@ -134,7 +132,7 @@ class DBOperator():
         with sqlite3.connect(settings.dbPath) as conn:
             res = conn.cursor().execute("""
                 SELECT employee.tg_user_id, warehouse_position.name FROM warehouse_position
-                LEFT JOIN employee ON employee.tg_user_id = warehouse_position.responsible_for_the_order
+                LEFT JOIN employee ON employee.username = warehouse_position.responsible_for_the_order
                 WHERE current_count <=required_minimum;
             """).fetchall()
             ans = dict()
@@ -143,17 +141,25 @@ class DBOperator():
                 else: ans[int(item[0])].append(item[1])
             return ans
 
-
+    @staticmethod
+    def getAdmins():
+        with sqlite3.connect(settings.dbPath) as conn:
+            res = conn.cursor().execute("""
+                SELECT tg_user_id, username FROM employee
+                WHERE isAdmin = TRUE;
+            """).fetchall()
+            print([x[0] for x in res])
+            return res
 
 
 class ReplacementNote():
     note_type = 'component_replacement'
     @staticmethod
-    def get_component_replacement_note(user_id, text):
+    def get_component_replacement_note(user_username, text):
         if int(text) > 0 and int(text) < settings.printer_count:
             return {
                 "note_type" : ReplacementNote.note_type,
-                "employee_id": user_id,
+                "employee_username": user_username,
                 "printer_number":int(text),
                 "operation":None,
                 "component": None,
@@ -164,7 +170,7 @@ class ReplacementNote():
     @staticmethod
     def writeInDB(note):
         if note["note_type"] == ReplacementNote.note_type:
-            param_list = [(note["printer_number"], note["operation"], note["component"], note["employee_id"], note["dateTime"])]
+            param_list = [(note["printer_number"], note["operation"], note["component"], note["employee_username"], note["dateTime"])]
             dbOperator = DBOperator()
             dbOperator.writeComponentReplacement(param_list)
             del(dbOperator)
@@ -172,10 +178,10 @@ class ReplacementNote():
 class WarehouseElemNote():
     note_type = "warehouse_position"
     @staticmethod
-    def create_warehouse_elem_note(employee_id, elem_type):
+    def create_warehouse_elem_note(employee_username, elem_type):
         return {
             "note_type" : WarehouseElemNote.note_type,
-            "employee_id": employee_id,
+            "employee_username": employee_username,
             "name": elem_type,
             "count": None
         }
@@ -185,7 +191,7 @@ class WarehouseElemNote():
         if note["note_type"] == WarehouseElemNote.note_type:
             update_param_list = [(note["count"], note["name"])]
             insert_param_list = [
-            (note["name"], note["employee_id"], datetime.datetime.now().strftime(settings.dbDatetimeFormat))]
+            (note["name"], note["employee_username"], datetime.datetime.now().strftime(settings.dbDatetimeFormat))]
             dbOperator = DBOperator()
             dbOperator.editWarehouseElement(update_param_list, insert_param_list)
             del (dbOperator)
