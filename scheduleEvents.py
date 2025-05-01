@@ -10,7 +10,7 @@ def mainScheduleFunction():
         print("Запуск отслеживания расписания событий...")
 
         # ДОПИСАТЬ ОПРЕДЕЛЕНИЕ ЧАСОВОГО ПОЯСА
-        schedule.every().thursday.at("06:00").do(inventory_notificatioin)
+        schedule.every().tuesday.at("06:00").do(inventory_notificatioin)
         schedule.every().friday.at("06:00").do(inventory_notificatioin)
         schedule.every().day.at("02:00").do(sendReservDBCopy)
         schedule.every().day.at("04:00").do(purchase_necessity_notificatioin)
@@ -25,8 +25,10 @@ def mainScheduleFunction():
 def inventory_notificatioin():
     count = len(dbOperator.DBOperator.getInventoryNeedsPositions())
     if count > 0:
-        text = f"Напоминание провести инвентаризацию. Необходимо обновление {count} позиций"
-        TgBot.reply_with_buttons(chat_id=settings.main_chat_id, text=text)
+        TgBot.bot.send_message(
+            chat_id=settings.main_chat_id,
+            text=f"Напоминание провести инвентаризацию. Необходимо обновление {count} позиций"
+        )
 
 def purchase_necessity_notificatioin():
     responsibles = dbOperator.DBOperator.getResponsiblePosiotion()
