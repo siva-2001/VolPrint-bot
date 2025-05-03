@@ -9,7 +9,9 @@ import AuthModule
 bot = telebot.TeleBot(settings.API_TOKEN, parse_mode="HTML", skip_pending=True)
 
 @bot.message_handler(chat_types=["supergroup", "group"])
-def poof(message): pass      #ЗАГЛУШКА ДЛЯ ГРУППОВЫХ ЧАТОВ
+def poof(message): #ЗАГЛУШКА ДЛЯ ГРУППОВЫХ ЧАТОВ
+    print(f"{datetime.datetime.now()} :: Заглушка чата: {message.chat.id}")
+
 
 def cancelDecorator(func):
     def wrapper(*args, **kwargs):
@@ -394,7 +396,7 @@ def warehouse_update_step_4(message):
         reply_with_buttons(
             chat_id=message.chat.id,
             text="Складская позиция обновлена!",
-            buttons_list=["Обновить ещё одну позицию"],
+            buttons_list=["Обновить ещё одну позицию", "Ок"],
             withoutCancel=True,
             next_step=warehouse_update_step_3,
         )
@@ -503,7 +505,6 @@ def component_replacement_cancel_step1(message):
 
 def component_replacement_cancel_step2(message):
     try:
-        print(dbOperator.notes[message.from_user.id])
         if int(message.text) == dbOperator.notes[message.from_user.id]["code"]:
             note = dbOperator.notes.pop(message.from_user.id)
             if(dbOperator.DBOperator.deleteLastComponentReplacement(note["printer_number"])):

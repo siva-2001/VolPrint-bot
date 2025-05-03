@@ -43,7 +43,6 @@ class DBOperator():
                     ORDER BY component_replacement.dateTime DESC
                     LIMIT 1;
                 """).fetchall()[0]
-            print(deleteReplNote)
             if stringToDatetime(deleteReplNote[1]).date() == datetime.datetime.now().date():
                 conn.cursor().execute(f"DELETE FROM component_replacement WHERE id = {deleteReplNote[0]}")
                 return True
@@ -65,8 +64,7 @@ class DBOperator():
             cursor.executemany(sql_insert, insert_param_list)
 
             conn.commit()
-        except Exception:
-            print("EXEP")
+        except Exception: print("EXEP")
 
         finally:
             cursor.close()
@@ -144,12 +142,9 @@ class DBOperator():
     @staticmethod
     def getAdmins():
         with sqlite3.connect(settings.dbPath) as conn:
-            res = conn.cursor().execute("""
-                SELECT tg_user_id, username FROM employee
-                WHERE isAdmin = TRUE;
+            return conn.cursor().execute("""
+                SELECT tg_user_id, username FROM employee WHERE isAdmin = TRUE;
             """).fetchall()
-            print([x[0] for x in res])
-            return res
 
 
 class ReplacementNote():

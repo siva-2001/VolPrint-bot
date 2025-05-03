@@ -20,8 +20,8 @@ def mainScheduleFunction():
         while True:
             schedule.run_pending()
             time.sleep(1)
-    finally:
-        print("schedule finished")
+
+    finally: print("schedule finished")
 
 def inventory_notificatioin():
     count = len(dbOperator.DBOperator.getInventoryNeedsPositions())
@@ -46,4 +46,3 @@ def sendReservDBCopy():
             disable_notification=True,
             visible_file_name=" ".join([datetime.datetime.now().strftime("%d.%m.%y"), settings.DBName]),
         )
-
