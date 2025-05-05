@@ -144,7 +144,7 @@ class DBOperator():
                 "dateTime":stringToDatetime(el[1])
             } if stringToDatetime(el[1]).day == datetime.datetime.now().day else None for el in completed]
             completed = list(set([x["pos"] for x in completed if x]))
-            res = list(settings.warehouse_list)
+            res = list(DBOperator.getWarehouseList().keys())
             for el in completed: res.remove(el)
             return res
 

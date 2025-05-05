@@ -363,7 +363,7 @@ def warehouse_update_step_2(message):
     reply_with_buttons(
         chat_id=message.chat.id,
         text="Какую позицию обновим?",
-        buttons_list=settings.warehouse_list,
+        buttons_list=dbOperator.DBOperator.getWarehouseList().keys(),
         row_width = 2,
         next_step=warehouse_update_step_3
     )
@@ -371,7 +371,8 @@ def warehouse_update_step_2(message):
 @cancelDecorator
 def warehouse_update_step_3(message):
     try:
-        if not message.text in settings.warehouse_list: raise exceptions.WarehouseElementTypeException
+        if not message.text in dbOperator.DBOperator.getWarehouseList().keys():
+            raise exceptions.WarehouseElementTypeException
         dbOperator.notes[message.from_user.id] =\
             dbOperator.WarehouseElemNote.create_warehouse_elem_note(message.from_user.username, message.text)
         reply_with_buttons(
@@ -384,7 +385,7 @@ def warehouse_update_step_3(message):
             chat_id=message.chat.id,
             text="На складе нет такой позиции!",
             next_step=warehouse_update_step_3,
-            buttons_list = settings.warehouse_list,
+            buttons_list = dbOperator.DBOperator.getComponentList().keys(),
             row_width = 2,
         )
 
