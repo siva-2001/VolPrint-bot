@@ -5,6 +5,7 @@ import telebot
 
 import settings, exceptions, dbOperator
 import AuthModule
+from dbOperator import DBOperator
 
 bot = telebot.TeleBot(settings.API_TOKEN, parse_mode="HTML", skip_pending=True)
 
@@ -199,7 +200,7 @@ def component_replacement_step2(message):
                 chat_id=message.chat.id,
                 text="Какой компонент будем менять?",
                 next_step=component_replacement_step3,
-                buttons_list=settings.component_list
+                buttons_list=dbOperator.DBOperator.getComponentList()
             )
         else:
             note =  dbOperator.notes.pop(message.from_user.id)
@@ -224,7 +225,7 @@ def component_replacement_step2(message):
 @cancelDecorator
 def component_replacement_step3(message):
     try:
-        if not message.text in settings.component_list: raise exceptions.ComponentException
+        if not message.text in dbOperator.DBOperator.getComponentList(): raise exceptions.ComponentException
         note = dbOperator.notes.pop(message.from_user.id)
         note['component'] = message.text
         dbOperator.ReplacementNote.writeInDB(note)
@@ -234,7 +235,7 @@ def component_replacement_step3(message):
             chat_id=message.chat.id,
             text=f'Готово! Проведена операция: {note["operation"]} "{note["component"]}"',
             withoutCancel=True,
-            buttons_list=["Ок", ],
+            buttons_list=["Ок", "Продолжить обслуживание текущего принтера"],
             next_step=component_replacement_step4,
         )
     except exceptions.ComponentException:
@@ -570,9 +571,9 @@ def show_full_printer_story(message):
 
 @bot.message_handler(func=lambda msg: msg.text==settings.start_menu_commands["warehouse"])
 def show_warehouse_step1(message):
-    warehouse_contents = dbOperator.DBOperator.getWarehouseContents()
-    text = list_notes_msg_view("Содержимое склада:", warehouse_contents["field_names"],
-                               [x[0] for x in warehouse_contents["res"]])
+    warehouse_contents = dbOperator.DBOperator.getWarehouseList()
+    text = list_notes_msg_view("Содержимое склада:", warehouse_contents.keys(),
+                               [x[0] for x in warehouse_contents.values()])
     reply_with_buttons(
         chat_id=message.chat.id,
         text=text,

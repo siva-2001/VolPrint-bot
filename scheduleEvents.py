@@ -14,7 +14,12 @@ def mainScheduleFunction():
         schedule.every().tuesday.at("06:00").do(inventory_notificatioin)
         schedule.every().friday.at("06:00").do(inventory_notificatioin)
         schedule.every().day.at("02:00").do(sendReservDBCopy)
-        schedule.every().day.at("04:00").do(purchase_necessity_notificatioin)
+
+        schedule.every().monday.at("04:00").do(purchase_necessity_notificatioin)
+        schedule.every().thursday.at("04:00").do(purchase_necessity_notificatioin)
+        schedule.every().wednesday.at("04:00").do(purchase_necessity_notificatioin)
+        schedule.every().tuesday.at("04:00").do(purchase_necessity_notificatioin)
+        schedule.every().friday.at("04:00").do(purchase_necessity_notificatioin)
 
         print("Расписание событий запущено")
         while True:

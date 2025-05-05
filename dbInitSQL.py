@@ -19,6 +19,8 @@ CREATE TABLE warehouse_position (
     current_count INTEGER,
     required_minimum INTEGER,
     responsible_for_the_order TEXT,
+    isComponent INTEGER DEFAULT 0,
+    IOSequence INTEGER DEFAULT 0,
     FOREIGN KEY (responsible_for_the_order) REFERENCES employee (username)
 );
 
@@ -45,36 +47,10 @@ CREATE TABLE warehouse_elem_update (
 
 def dbInitial():
     if not os.path.exists(settings.dbPath):
-        def createUser(username, userID, name, isAdmin):
-            try:
-                conn = sqlite3.connect(settings.dbPath)
-                cursor = conn.cursor()
-                cursor.executemany(f"""INSERT INTO employee  
-                    (username, tg_user_id, name, isAdmin) VALUES (?,?,?,?);""", [(username, userID, name, 1 if isAdmin else 0),])
-                conn.commit()
-            finally:
-                cursor.close()
-                conn.close()
-
-        def create_warehouseElements():
-            param_list = [(e, 0, 0) for e in settings.warehouse_list]
-            try:
-                conn = sqlite3.connect(settings.dbPath)
-                cursor = conn.cursor()
-                sql = f"""INSERT INTO {dbOperator.WarehouseElemNote.note_type}  
-                    (name, current_count, required_minimum, responsible_for_the_order) VALUES (?, ?, ?, NULL);"""
-                cursor.executemany(sql, param_list)
-                conn.commit()
-            finally:
-                cursor.close()
-                conn.close()
-
         conn = sqlite3.connect(settings.dbPath)
         conn.executescript(dbInitSQL)
         conn.commit()
         conn.close()
-
-        create_warehouseElements()
 
         print(f"База данных создана: {settings.dbPath}")
     else:

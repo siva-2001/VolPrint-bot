@@ -101,14 +101,37 @@ class DBOperator():
             #     "field_names":["field_name1", "field_name2"],
             #     "res": [(count1, required_count1), (count2, required_count2)]
             # }
+            #       добавить поля   isComponent, IOSequence
 
             res = conn.cursor().execute(f"""
-                SELECT name, current_count, required_minimum FROM warehouse_position;
+                SELECT name, current_count, required_minimum FROM warehouse_position
+                ORDER BY IOSequence;
             """).fetchall()
             return {
                 "field_names": [item[0] for item in res],
                 "res": [(x[1], x[2]) for x in res]
             }
+
+    @staticmethod
+    def getWarehouseList():
+        with (sqlite3.connect(settings.dbPath) as conn):
+            res = conn.cursor().execute(f"""
+                SELECT name, current_count, required_minimum FROM warehouse_position
+                ORDER BY IOSequence;
+            """).fetchall()
+            ans = dict()
+            for elem in res: ans[elem[0]] = (elem[1], elem[2])
+            return ans
+
+    @staticmethod
+    def getComponentList():
+        with (sqlite3.connect(settings.dbPath) as conn):
+            res = conn.cursor().execute(f"""
+                SELECT name FROM warehouse_position
+                WHERE isComponent = 1
+                ORDER BY IOSequence;
+            """).fetchall()
+            return [x[0] for x in res]
 
     @staticmethod
     def getInventoryNeedsPositions():
@@ -145,7 +168,6 @@ class DBOperator():
             return conn.cursor().execute("""
                 SELECT tg_user_id, username FROM employee WHERE isAdmin = TRUE;
             """).fetchall()
-
 
 class ReplacementNote():
     note_type = 'component_replacement'
