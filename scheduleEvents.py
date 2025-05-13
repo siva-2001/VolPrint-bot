@@ -56,6 +56,6 @@ def sendReservDBCopy():
 def window_notificatioin():
     TgBot.bot.send_message(
         chat_id=settings.main_chat_id,
-        text=f"Уходя на выходные, закрывайте окна. Дождь с ветром способен залить нам пол по щиколотку",
+        text=f"Уходя на выходные, закрывайте окна. Дождь с ветром способны залить нам пол, будем передвигаться на лодках :)",
         reply_markup=telebot.types.ReplyKeyboardRemove()
     )
