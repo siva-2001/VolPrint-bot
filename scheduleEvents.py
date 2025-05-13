@@ -13,6 +13,7 @@ def mainScheduleFunction():
         # ДОПИСАТЬ ОПРЕДЕЛЕНИЕ ЧАСОВОГО ПОЯСА
         schedule.every().tuesday.at("06:00").do(inventory_notificatioin)
         schedule.every().friday.at("06:00").do(inventory_notificatioin)
+        schedule.every().friday.at("18:00").do(window_notificatioin)
         schedule.every().day.at("02:00").do(sendReservDBCopy)
 
         schedule.every().monday.at("04:00").do(purchase_necessity_notificatioin)
@@ -33,7 +34,7 @@ def inventory_notificatioin():
     if count > 0:
         TgBot.bot.send_message(
             chat_id=settings.main_chat_id,
-            text=f"Напоминание провести инвентаризацию. Необходимо обновление {count} позиций",
+            text=f"Напоминание провести инвентаризацию",
             reply_markup=telebot.types.ReplyKeyboardRemove()
         )
 
@@ -51,3 +52,10 @@ def sendReservDBCopy():
             disable_notification=True,
             visible_file_name=" ".join([datetime.datetime.now().strftime("%d.%m.%y"), settings.DBName]),
         )
+
+def window_notificatioin():
+    TgBot.bot.send_message(
+        chat_id=settings.main_chat_id,
+        text=f"Уходя на выходные, закрывайте окна. Дождь с ветром способен залить нам пол по щиколотку",
+        reply_markup=telebot.types.ReplyKeyboardRemove()
+    )

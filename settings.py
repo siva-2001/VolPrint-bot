@@ -3,7 +3,7 @@
 API_TOKEN - телеграм API токен
 REG_PW - Регистрационный пароль
 """
-import os, sys
+import os
 
 
 printer_count = 60 if not os.environ.get("PRINTER_COUNT") else int(os.environ.get("PRINTER_COUNT"))

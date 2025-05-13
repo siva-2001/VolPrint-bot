@@ -400,7 +400,7 @@ def warehouse_update_step_4(message):
             text="Складская позиция обновлена!",
             buttons_list=["Обновить ещё одну позицию", "Ок"],
             withoutCancel=True,
-            next_step=warehouse_update_step_3,
+            next_step=warehouse_update_step_2,
         )
     except ValueError:
             reply_with_buttons(
@@ -445,7 +445,7 @@ def show_printer_story_step2(message, printer_number=None):
         reply_with_buttons(
             chat_id=message.chat.id,
             text=text,
-            buttons_list=["Смотреть историю другого принтера", "Полная история прентера", "Отменить последнее действие"],
+            buttons_list=["Смотреть историю другого принтера", "Полная история принтера", "Отменить последнее действие"],
             next_step=show_printer_story_step3,
         )
     except ValueError:
@@ -496,6 +496,7 @@ def show_printer_story_step3(message):
             next_step=component_replacement_cancel_step1,
         )
 
+@cancelDecorator
 def component_replacement_cancel_step1(message):
         dbOperator.notes[message.from_user.id]["code"] = random.randint(1000, 10000)
         reply_with_buttons(
@@ -504,7 +505,7 @@ def component_replacement_cancel_step1(message):
             next_step=component_replacement_cancel_step2,
         )
 
-
+@cancelDecorator
 def component_replacement_cancel_step2(message):
     try:
         if int(message.text) == dbOperator.notes[message.from_user.id]["code"]:
@@ -547,7 +548,7 @@ def component_replacement_cancel_step2(message):
             next_step=component_replacement_cancel_step2,
         )
 
-
+@cancelDecorator
 def show_full_printer_story(message):
     printer_number = dbOperator.notes.pop(message.from_user.id)["printer_number"]
     story = dbOperator.DBOperator.getPrinterStory(printer_number)
