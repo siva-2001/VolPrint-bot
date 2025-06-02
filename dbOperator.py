@@ -163,6 +163,24 @@ class DBOperator():
             return ans
 
     @staticmethod
+    def get_TechServices(timedelta=datetime.timedelta(days=7)):
+        with sqlite3.connect(settings.dbPath) as conn:
+            print("here")
+            result = []
+            res = conn.cursor().execute(f"""
+                SELECT component_replacement.operation, employee.name, component_replacement.dateTime, component_replacement.printer_number
+                FROM component_replacement
+                LEFT JOIN employee ON component_replacement.employee_username = employee.username
+                WHERE component_replacement.operation = "Плановое ТО"
+                ORDER BY component_replacement.dateTime DESC
+            """).fetchall()
+            for x in res:
+                if (stringToDatetime(x[2]) > datetime.datetime.now() - timedelta):
+                    result.append((x[1], stringToDatetime(x[2]), x[3]))
+        return result
+
+
+    @staticmethod
     def getAdmins():
         with sqlite3.connect(settings.dbPath) as conn:
             return conn.cursor().execute("""
@@ -173,7 +191,7 @@ class ReplacementNote():
     note_type = 'component_replacement'
     @staticmethod
     def get_component_replacement_note(user_username, text):
-        if int(text) > 0 and int(text) < settings.printer_count:
+        if int(text) > 0 and int(text) <= settings.printer_count:
             return {
                 "note_type" : ReplacementNote.note_type,
                 "employee_username": user_username,

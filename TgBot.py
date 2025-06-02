@@ -100,6 +100,22 @@ def reply_with_buttons(chat_id, text, buttons_list=None, withoutCancel=False, ne
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 
+@bot.message_handler(commands=["report"])
+def get_report(message):
+    result = dict()
+    for answer in dbOperator.DBOperator.get_TechServices(datetime.timedelta(days=7)):
+        if answer[0] in result.keys(): result[answer[0]].append(answer[2])
+        else: result[answer[0]] = []
+
+    text = 'Обслужено принтеров за неделю:\n'
+    for key in result.keys(): text += f"{key}: {len(result[key])}\n"
+
+    reply_with_buttons(
+        chat_id = message.from_user.id,
+        text=text,
+        buttons_list=["Ок"], withoutCancel=True,
+    )
+
 @bot.message_handler(commands=["registration"])
 def user_registration(message):
     if not AuthModule.UserAuth.userIsAuth(message.from_user.id):
