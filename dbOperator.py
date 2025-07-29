@@ -157,10 +157,19 @@ class DBOperator():
                 WHERE current_count <=required_minimum;
             """).fetchall()
             ans = dict()
+
+            holderID = 340327182    # Костыль для отправки количества новых сопел и шестерёнок Диме
+            ans[holderID] = []
+            for item in res:
+                if item[1] in ["Шестерня(Н)","Сопло(Н)"]: ans[holderID].append(item[1])
+
+
             for item in res:
                 if int(item[0]) not in ans.keys(): ans[int(item[0])] = [item[1]]
                 else: ans[int(item[0])].append(item[1])
+            print(ans)
             return ans
+
 
     @staticmethod
     def get_TechServices(timedelta=datetime.timedelta(days=7)):

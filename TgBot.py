@@ -97,6 +97,7 @@ def reply_with_buttons(chat_id, text, buttons_list=None, withoutCancel=False, ne
 # ______________________________________________________________________________________________________________________
 
 #       СЦЕНАРИЙ РЕГИСТРАЦИИ
+
 # ______________________________________________________________________________________________________________________
 # ______________________________________________________________________________________________________________________
 
@@ -370,7 +371,7 @@ def inventory_end(message):
     dbOperator.notes.pop(message.from_user.id)
     responsibles = dbOperator.DBOperator.getResponsiblePosiotion()
     for id in responsibles.keys():
-        text = "Чел, срочно закупись:\n\n"
+        text = "Запасы на исходе, Милорд!\nНеобходимо закупить:\n\n"
         reply_with_buttons(chat_id=id, text=text+"\n".join(responsibles[id]), buttons_list=["Ок"], withoutCancel=True)
 
 
